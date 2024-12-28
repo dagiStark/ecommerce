@@ -5,12 +5,14 @@ import * as jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../secrets";
 import { BadRequestException } from "../exceptions/bad-request";
 import { ErrorCode } from "../exceptions/root";
+import { LoginSchema, SignupSchema } from "../schema/users";
 
 export const signup = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
+  SignupSchema.parse(req.body);
   const { email, password, name } = req.body;
   let user = await prismaClient.user.findFirst({ where: { email } });
   if (user) {
@@ -32,18 +34,31 @@ export const signup = async (
   }
 };
 
-export const login = async (req: Request, res: Response) => {
+export const login = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  LoginSchema.parse(req.body);
   const { email, password } = req.body;
   let user = await prismaClient.user.findFirst({ where: { email } });
   if (!user) {
-    res.status(400).send("User does not exist");
-    throw new Error("User doesn't exist");
+    next(
+      new BadRequestException("User does not exist!", ErrorCode.USER_NOT_FOUND)
+    );
   } else {
     if (!compareSync(password, user.password)) {
-      res.status(400).send("Incorrect password");
-      throw new Error("Incorrect password");
+      next(
+        new BadRequestException(
+          "Incorrect password!",
+          ErrorCode.INCORRECT_PASSWORD
+        )
+      );
     }
     const token = jwt.sign({ userId: user.id }, JWT_SECRET);
     res.status(201).json({ user, token });
   }
+};
+export const me = async (req: Request, res: Response) => {
+  res.json(req.user);
 };
