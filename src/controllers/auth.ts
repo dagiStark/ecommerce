@@ -6,6 +6,11 @@ import { JWT_SECRET } from "../secrets";
 import { BadRequestException } from "../exceptions/bad-request";
 import { ErrorCode } from "../exceptions/root";
 import { LoginSchema, SignupSchema } from "../schema/users";
+import { User } from "@prisma/client";
+
+interface CustomRequest extends Request {
+  user?: User;
+}
 
 export const signup = async (
   req: Request,
@@ -59,6 +64,9 @@ export const login = async (
     res.status(201).json({ user, token });
   }
 };
-export const me = async (req: Request, res: Response) => {
-  res.json(req.user);
+export const me = (req: CustomRequest, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  return res.json(req.user);
 };

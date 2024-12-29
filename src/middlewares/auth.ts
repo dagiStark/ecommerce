@@ -19,6 +19,7 @@ const authMiddleware = async (
       });
 
       if (!user) {
+        console.error("User does not exist!");
         return next(
           new UnauthorizedException(
             "User does not exist!",
@@ -28,7 +29,9 @@ const authMiddleware = async (
         );
       }
 
-      req.user = user;
+      console.log("User found:", user);
+      (req as any).user = user;
+
       next();
     } catch (error) {
       next(
@@ -40,6 +43,7 @@ const authMiddleware = async (
       );
     }
   } else {
+    console.error("Authorization header missing!");
     next(
       new UnauthorizedException("Unauthorized!", ErrorCode.INVALID_TOKEN, null)
     );
