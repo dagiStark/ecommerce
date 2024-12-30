@@ -4,30 +4,34 @@ import { CreateProductSchema } from "../schema/products";
 import { NotFoundException } from "../exceptions/not-found";
 import { UnprocessableEntityException } from "../exceptions/validation";
 import { ErrorCode } from "../exceptions/root";
+import { InternalException } from "../exceptions/internal-exception";
 
 export const createProduct = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  const validatedData = CreateProductSchema.parse(req.body);
-  if (!validatedData || validatedData.price < 0) {
-    next(
+  const validationResult = CreateProductSchema.safeParse(req.body);
+  if (!validationResult.success) {
+    return next(
       new UnprocessableEntityException(
         "Invalid Input!",
-        null,
+        validationResult.error.errors,
         ErrorCode.UNPROCESSABLE_ENTITY
       )
     );
   }
+  const validatedData = validationResult.data;
+
   const product = await prismaClient.product.create({
     data: {
       ...validatedData,
       tags: validatedData.tags.join(","),
     },
   });
+
   if (!product) {
-    next(new NotFoundException("Product not found!", 404, null));
+    return next(new NotFoundException("Product not found!", 404, null));
   }
   res.status(200).json(product);
 };
@@ -37,16 +41,17 @@ export const updateProduct = async (
   res: Response,
   next: NextFunction
 ) => {
-  const validatedData = CreateProductSchema.parse(req.body);
-  if (!validatedData || validatedData.price < 0) {
-    next(
+  const validationResult = CreateProductSchema.safeParse(req.body);
+  if (!validationResult.success) {
+    return next(
       new UnprocessableEntityException(
         "Invalid Input!",
-        null,
+        validationResult.error.errors,
         ErrorCode.UNPROCESSABLE_ENTITY
       )
     );
   }
+  const validatedData = validationResult.data;
   const product = await prismaClient.product.update({
     where: {
       id: +req.params.id,
@@ -101,11 +106,8 @@ export const listProducts = async (
 ) => {
   try {
     const products = await prismaClient.product.findMany();
-    res.json(products);
+    res.status(200).json(products);
   } catch (error: any) {
-    res.status(400).json({
-      error: "Validation failed",
-      details: error.message,
-    });
+   next(new InternalException("Internal Server Error!", 500, error));
   }
 };

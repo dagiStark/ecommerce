@@ -29,9 +29,7 @@ const authMiddleware = async (
         );
       }
 
-      console.log("User found:", user);
       (req as any).user = user;
-
       next();
     } catch (error) {
       next(
