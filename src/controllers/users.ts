@@ -152,3 +152,57 @@ export const updateUser = async (
   }
   res.status(200).json(user);
 };
+
+export const listUsers = async (
+  req: CustomRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const users = await prismaClient.user.findMany({
+      skip: +(req.query.skip as string) || 0,
+      take: +(req.query.take as string) || 5,
+    });
+    res.status(200).json(users);
+  } catch (error: any) {
+    next(new InternalException("Internal Server Error!", 500, error));
+  }
+};
+
+export const getUserById = async (
+  req: CustomRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  const user = await prismaClient.user.findUnique({
+    where: {
+      id: +req.params.id,
+    },
+    include: {
+      addresses: true,
+    },
+  });
+  if (!user) {
+    next(new NotFoundException("User not found!", 404, null));
+  }
+  res.status(200).json(user);
+};
+
+export const changeUserRole = async (
+  req: CustomRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  const user = await prismaClient.user.update({
+    where: {
+      id: +req.params.id,
+    },
+    data: {
+      role: req.body.role,
+    },
+  });
+  if (!user) {
+    next(new NotFoundException("User not found!", 404, null));
+  }
+  res.status(200).json(user);
+};
