@@ -108,6 +108,39 @@ export const listProducts = async (
     const products = await prismaClient.product.findMany();
     res.status(200).json(products);
   } catch (error: any) {
-   next(new InternalException("Internal Server Error!", 500, error));
+    next(new InternalException("Internal Server Error!", 500, error));
+  }
+};
+
+export const searchProducts = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const products = await prismaClient.product.findMany({
+      where: {
+        OR: [
+          {
+            name: {
+              contains: req.query.name as string,
+            },
+          },
+          {
+            description: {
+              contains: req.query.description as string,
+            },
+          },
+          {
+            tags: {
+              contains: req.query.tags as string,
+            },
+          },
+        ],
+      },
+    });
+    res.status(200).json(products);
+  } catch (error: any) {
+    next(new InternalException("Internal Server Error!", 500, error));
   }
 };
